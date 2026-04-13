@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Traffic Prediction</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>🚦 Traffic Prediction System</h1>
+
+<label>Hour (0-23):</label>
+<input type="number" id="hour" min="0" max="23"><br><br>
+
+<label>Day (1=Mon, 7=Sun):</label>
+<input type="number" id="day" min="1" max="7"><br><br>
+
+<!-- ✅ NEW: City Selection -->
+<label>Select City:</label>
+<select id="city" onchange="updateMap()">
+    <option value="Chennai">Chennai</option>
+    <option value="Coimbatore">Coimbatore</option>
+    <option value="Madurai">Madurai</option>
+    <option value="Salem">Salem</option>
+</select><br><br>
+
+<button onclick="predict()">Predict</button>
+
+<div id="result" class="card"></div>
+
+<!-- ✅ NEW: Live Map -->
+<iframe
+    id="map"
+    width="80%"
+    height="300"
+    src="https://www.google.com/maps?q=Chennai&output=embed">
+</iframe>
+
+<script>
+
+// ✅ Auto-fill current hour
+window.onload = () => {
+    document.getElementById("hour").value = new Date().getHours();
+};
+
+// ✅ Update map when city changes
+function updateMap() {
+    const city = document.getElementById("city").value;
+    document.getElementById("map").src =
+        `https://www.google.com/maps?q=${city}&output=embed`;
+}
+
+function predict() {
+    const hour = document.getElementById("hour").value;
+    const day = document.getElementById("day").value;
+    const city = document.getElementById("city").value;
+
+    // ✅ Validation
+    if (!hour || !day) {
+        alert("Please enter Hour and Day!");
+        return;
+    }
+
+    fetch("/predict", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            hour: hour,
+            day: day,
+            city: city
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const resultDiv = document.getElementById("result");
+
+        // 🚦 Traffic signal
+        let signal = "🟢";
+        if (data.level.includes("Moderate")) signal = "🟡";
+        if (data.level.includes("Heavy")) signal = "🔴";
+
+        resultDiv.innerHTML =
+            `<b>${signal} Vehicles:</b> ${data.vehicles} <br>
+             <b>📊 Status:</b> ${data.level} <br>
+             <b>📍 City:</b> ${city}`;
+
+        // 🎨 Color
+        let color = "lightgreen";
+        if (data.level.includes("Moderate")) color = "orange";
+        if (data.level.includes("Heavy")) color = "red";
+
+        resultDiv.style.color = color;
+    })
+    .catch(() => alert("Error occurred!"));
+}
+</script>
+
+</body>
+</html>
